@@ -14,7 +14,6 @@ import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
-import javax.security.auth.DestroyFailedException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -29,8 +28,8 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 import java.util.Properties;
 
-public class JTKCrypto {
-    private static final Logger log = LoggerFactory.getLogger(JTKCrypto.class);
+public class JTKSymEncryption {
+    private static final Logger log = LoggerFactory.getLogger(JTKSymEncryption.class);
     private final int iterationCount;
     private final int keySizeInBits;
     private final String keyDerivationFunction;
@@ -41,11 +40,10 @@ public class JTKCrypto {
     private final String transformationAlgo;
 
     private char[] passphrase;
-    private Properties properties;
+    private Properties properties = new Properties();
 
-    public JTKCrypto(char[] passphrase, Properties properties) {
+    public JTKSymEncryption(char[] passphrase, Properties properties) {
         this.passphrase = Arrays.copyOf(passphrase, passphrase.length);
-        this.properties = new Properties();
         properties.keySet()
                 .stream()
                 .forEach(key -> this.properties.setProperty((String) key, properties.getProperty((String) key)));
@@ -57,8 +55,7 @@ public class JTKCrypto {
         initializationVectorSizeInBits = Integer.parseInt(properties.getProperty("jtk.encryption.iv.size.in.bits"));
         tagSizeInBits = Integer.parseInt(properties.getProperty("jtk.encryption.tag.size.in.bits"));
         transformationAlgo = properties.getProperty("jtk.encryption.transformation");
-
-        log.info("Initialized JTKCrypto");
+        log.info("Initialized JTKSymEncryption");
     }
 
     public byte[] encryptMessage(Serializable serializable) {

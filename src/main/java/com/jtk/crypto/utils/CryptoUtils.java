@@ -12,6 +12,17 @@ import java.util.Base64;
 public class CryptoUtils {
     private static final Logger log = LoggerFactory.getLogger(CryptoUtils.class);
 
+    /**
+     * Initialization Vector, it is an arbitrary number which will be used
+     * along with SecretKey during encryption.
+     * The IV adds randomness to the start of the encryption process,
+     * it is also called as nonce as it will be used only once.
+     * SecureRandom class provides a cryptographically strong random number generator
+     *
+     * @param generatorAlgorithm
+     * @param initializationVectorSizeInBits
+     * @return
+     */
     public static byte[] generateSalt(String generatorAlgorithm, int initializationVectorSizeInBits) {
         if (StringUtils.isEmpty(generatorAlgorithm)) {
             throw new JTKEncyptionException("GeneratorAlgorithm is empty");
