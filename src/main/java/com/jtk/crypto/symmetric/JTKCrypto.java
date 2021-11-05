@@ -44,8 +44,11 @@ public class JTKCrypto {
     private Properties properties;
 
     public JTKCrypto(char[] passphrase, Properties properties) {
-        this.passphrase = passphrase;
-        this.properties = properties;
+        this.passphrase = Arrays.copyOf(passphrase, passphrase.length);
+        this.properties = new Properties();
+        properties.keySet()
+                .stream()
+                .forEach(key -> this.properties.setProperty((String) key, properties.getProperty((String) key)));
         iterationCount = Integer.parseInt(properties.getProperty("jtk.encryption.iteration.count", "250"));
         keySizeInBits = Integer.parseInt(properties.getProperty("jtk.encryption.key.size.in.bits", "128"));
         keyDerivationFunction = properties.getProperty("jtk.encryption.key.derivation.function");
@@ -78,7 +81,7 @@ public class JTKCrypto {
         }
         try (ByteArrayInputStream bis = new ByteArrayInputStream(decrypt(encryptedText))) {
             ObjectInput in = new ObjectInputStream(bis);
-            return (T)in.readObject();
+            return (T) in.readObject();
         } catch (IOException | ClassNotFoundException e) {
             throw new JTKEncyptionException("Couldn't serialize message", e);
         }
@@ -91,7 +94,7 @@ public class JTKCrypto {
         try {
             Cipher cipher = initCipher(Cipher.DECRYPT_MODE, passphrase, salt);
             message = cipher.doFinal(cipherText);
-        }catch (IllegalBlockSizeException | BadPaddingException e){
+        } catch (IllegalBlockSizeException | BadPaddingException e) {
             throw new JTKEncyptionException("Couldn't decrypt  message", e);
         }
         return message;
