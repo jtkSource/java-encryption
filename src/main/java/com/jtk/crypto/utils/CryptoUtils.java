@@ -5,8 +5,23 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
+import javax.crypto.spec.SecretKeySpec;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.security.cert.CertificateException;
+import java.security.spec.InvalidKeySpecException;
+import java.util.Arrays;
 import java.util.Base64;
 
 public class CryptoUtils {
@@ -37,4 +52,43 @@ public class CryptoUtils {
             throw new JTKEncyptionException("Couldn't generate salt", e);
         }
     }
+
+    public static SecretKey createSecretKey(char[] passphrase, byte[] salt,
+                                            int iterationCount, int keySizeInBits,
+                                            String keyDerivationFunction, String encryptionAlgo) {
+
+        PBEKeySpec pbeKeySpec = new PBEKeySpec(passphrase, salt, iterationCount, keySizeInBits);
+        SecretKey pbeKey;
+        byte[] keyBytes = null;
+        try {
+            SecretKeyFactory secretKeyFactory = SecretKeyFactory.getInstance(keyDerivationFunction);
+            pbeKey = secretKeyFactory.generateSecret(pbeKeySpec);
+            keyBytes = pbeKey.getEncoded();
+            return new SecretKeySpec(keyBytes, encryptionAlgo);
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+            throw new JTKEncyptionException("Invalid exception", e);
+        } finally {
+            pbeKeySpec.clearPassword();
+            if (keyBytes != null) {
+                Arrays.fill(keyBytes, (byte) 0);
+            }
+        }
+    }
+
+    public static KeyPair generateRSAKeyPair(String generatorAlgorithm, int keySize) {
+        if (StringUtils.isEmpty(generatorAlgorithm)) {
+            throw new JTKEncyptionException("GeneratorAlgorithm is empty");
+        }
+        if (keySize < 2048) {
+            throw new JTKEncyptionException("KeySize too small");
+        }
+        try {
+            KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+            keyPairGenerator.initialize(keySize, SecureRandom.getInstance(generatorAlgorithm));
+            return keyPairGenerator.generateKeyPair();
+        } catch (NoSuchAlgorithmException e) {
+            throw new JTKEncyptionException("Algo not found", e);
+        }
+    }
+
 }

@@ -2,6 +2,7 @@ package com.jtk.crypto.symmetric;
 
 import com.jtk.crypto.exception.JTKEncyptionException;
 import com.jtk.crypto.utils.CryptoUtils;
+import static com.jtk.crypto.utils.CryptoUtils.createSecretKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -114,7 +115,9 @@ public class JTKSymEncryption {
 
     private Cipher initCipher(int encryptMode, char[] passphrase, byte[] salt) {
         GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(tagSizeInBits, salt);
-        SecretKey key = createSecretKey(passphrase, salt);
+        SecretKey key = createSecretKey(passphrase, salt,
+                iterationCount, keySizeInBits,
+                keyDerivationFunction, encryptionAlgo);
         try {
             Cipher cipher = Cipher.getInstance(transformationAlgo);
             cipher.init(encryptMode, key, gcmParameterSpec);
@@ -126,22 +129,5 @@ public class JTKSymEncryption {
         }
     }
 
-    private SecretKey createSecretKey(char[] passphrase, byte[] salt) {
-        PBEKeySpec pbeKeySpec = new PBEKeySpec(passphrase, salt, iterationCount, keySizeInBits);
-        SecretKey pbeKey;
-        byte[] keyBytes = null;
-        try {
-            SecretKeyFactory secretKeyFactory = SecretKeyFactory.getInstance(keyDerivationFunction);
-            pbeKey = secretKeyFactory.generateSecret(pbeKeySpec);
-            keyBytes = pbeKey.getEncoded();
-            return new SecretKeySpec(keyBytes, encryptionAlgo);
-        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
-            throw new JTKEncyptionException("Invalid exception", e);
-        } finally {
-            pbeKeySpec.clearPassword();
-            if (keyBytes != null) {
-                Arrays.fill(keyBytes, (byte) 0);
-            }
-        }
-    }
+
 }
