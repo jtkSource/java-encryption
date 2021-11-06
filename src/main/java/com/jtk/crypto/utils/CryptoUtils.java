@@ -18,8 +18,11 @@ import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 import java.util.Base64;
@@ -88,6 +91,15 @@ public class CryptoUtils {
             return keyPairGenerator.generateKeyPair();
         } catch (NoSuchAlgorithmException e) {
             throw new JTKEncyptionException("Algo not found", e);
+        }
+    }
+
+    public static X509Certificate loadCertificate(String fileName) {
+        try (FileInputStream is = new FileInputStream(fileName)) {
+            CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
+            return  (X509Certificate) certificateFactory.generateCertificate(is);
+        } catch (CertificateException | IOException e) {
+            throw new JTKEncyptionException("Unable to load certificate", e);
         }
     }
 
