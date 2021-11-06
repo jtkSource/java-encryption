@@ -1,43 +1,41 @@
-package com.jtk.crypto.utils;
+package com.jtk.crypto.keystore;
 
 import com.jtk.crypto.exception.JTKEncyptionException;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.security.Key;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
-import java.security.PublicKey;
 import java.security.UnrecoverableEntryException;
-import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 
-public class KeystoreUtil {
+public class KeystoreManager {
+
+    private static final Logger log = LoggerFactory.getLogger(KeystoreManager.class);
 
     private final KeyStore keystore;
-    private String fileName;
-    private char[] password;
-    private KeyStore.PasswordProtection keystorePassword;
+    private final String fileName;
+    private final char[] password;
+    private final KeyStore.PasswordProtection keystorePassword;
 
-    public KeystoreUtil(String fileName, char[] password) {
+    public KeystoreManager(String fileName, char[] password) {
         this.fileName = fileName;
-        this.password = password;
-        keystorePassword = new KeyStore.PasswordProtection(this.password);
+        this.password = Arrays.copyOf(password, password.length);
+        this.keystorePassword = new KeyStore.PasswordProtection(this.password);
         this.keystore = createKeystore();
     }
 
@@ -45,7 +43,7 @@ public class KeystoreUtil {
      * Used for storing symmetric keys
      *
      * @param credential - which is wrapped in what is called a ProtectionParam
-     * @param alias      -  name that we'll use in the future to refer to the entry
+     * @param alias      -  name  refer to the entry
      */
     public void addSecret(char[] credential, String alias) {
         try {
@@ -63,8 +61,8 @@ public class KeystoreUtil {
     /**
      * Retrieve symmetric keys with alias
      *
-     * @param alias
-     * @return
+     * @param alias -  name  refer to the entry
+     * @return stored credentials
      */
     public String getSecret(String alias) {
         try {
@@ -80,22 +78,35 @@ public class KeystoreUtil {
     /**
      * saving a trusted certificate
      *
-     * @param alias
-     * @param certificate
+     * @param alias       -  name  refer to the entry
+     * @param certificate - certificate to be trusted
      */
-    public void trustCertficate(String alias, Certificate certificate) {
+    public void trustCertificate(String alias, Certificate certificate) {
         try {
             this.keystore.setCertificateEntry(alias, certificate);
             saveKeystore(this.keystore);
+            log.info("Saved certificate:{}", alias);
         } catch (KeyStoreException | IOException | NoSuchAlgorithmException | CertificateException e) {
-            throw new JTKEncyptionException("Couldn't save certificate",e);
+            throw new JTKEncyptionException("Couldn't save certificate", e);
         }
     }
 
-    public Certificate getCerificate(String alias){
+    public Certificate getCertificate(String alias) {
         try {
             return keystore.getCertificate(alias);
         } catch (KeyStoreException e) {
+            throw new JTKEncyptionException("Unable to get Certificate", e);
+        }
+    }
+
+    public void removeEntry(String alias) {
+        try {
+
+            keystore.deleteEntry(alias);
+            saveKeystore(keystore);
+            log.info("Removed Entry: {}", alias);
+
+        } catch (KeyStoreException | IOException | NoSuchAlgorithmException | CertificateException e) {
             throw new JTKEncyptionException("Unable to get Certificate", e);
         }
     }
@@ -106,7 +117,9 @@ public class KeystoreUtil {
             char[] pwd = Arrays.copyOf(password, password.length);
             KeyStore keyStore = KeyStore.getInstance("PKCS12", "SUN");
             if (file.exists()) {
-                keyStore.load(new FileInputStream(file), pwd);
+                try (FileInputStream stream = new FileInputStream(file)) {
+                    keyStore.load(stream, pwd);
+                }
             } else {
                 keyStore.load(null, pwd);
                 saveKeystore(keyStore);
@@ -120,8 +133,9 @@ public class KeystoreUtil {
 
     private void saveKeystore(KeyStore keyStore) throws
             KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException {
-        FileOutputStream fileOutputStream = new FileOutputStream(fileName);
-        keyStore.store(fileOutputStream, this.password);
+        try (FileOutputStream fileOutputStream = new FileOutputStream(fileName)) {
+            keyStore.store(fileOutputStream, this.password);
+        }
     }
 
 
