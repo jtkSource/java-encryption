@@ -1,5 +1,6 @@
 package com.jtk.crypto.keystore;
 
+import com.jtk.crypto.cert.SelfSignedCertificate;
 import com.jtk.crypto.exception.JTKEncyptionException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -17,11 +18,15 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.security.PrivateKey;
 import java.security.UnrecoverableEntryException;
+import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
+import java.util.Properties;
 
 public class KeystoreManager {
 
@@ -42,10 +47,11 @@ public class KeystoreManager {
     /**
      * Used for storing symmetric keys
      *
-     * @param credential - which is wrapped in what is called a ProtectionParam
+     * @param credential - which is stored in the keystore securely protected by the keystorePassword
      * @param alias      -  name  refer to the entry
      */
     public void addSecret(char[] credential, String alias) {
+        checkAlias(alias);
         try {
             SecretKeyFactory secretKeyFactory = SecretKeyFactory.getInstance("PBE");
             SecretKey generatedSecret =
@@ -54,17 +60,18 @@ public class KeystoreManager {
             saveKeystore(this.keystore);
         } catch (NoSuchAlgorithmException | KeyStoreException | InvalidKeySpecException
                 | IOException | CertificateException e) {
-            e.printStackTrace();
+            throw new JTKEncyptionException("Secret cannot be added", e);
         }
     }
 
     /**
-     * Retrieve symmetric keys with alias
+     * Retrieve symmetric keys using alias
      *
      * @param alias -  name  refer to the entry
      * @return stored credentials
      */
     public String getSecret(String alias) {
+        checkAlias(alias);
         try {
             SecretKey secretKey = ((KeyStore.SecretKeyEntry) this.keystore.getEntry(alias, keystorePassword))
                     .getSecretKey();
@@ -72,6 +79,42 @@ public class KeystoreManager {
             return StringUtils.toEncodedString(encoded, StandardCharsets.UTF_8);
         } catch (NoSuchAlgorithmException | UnrecoverableEntryException | KeyStoreException e) {
             throw new JTKEncyptionException("Unable to get secret", e);
+        }
+    }
+
+    public void addPrivateKey(char[] keyPassword, Properties properties) {
+        try {
+            log.info("creating self-signed certificate");
+            SelfSignedCertificate selfSignedCertificate = new SelfSignedCertificate(properties);
+            keystore.setKeyEntry("root", selfSignedCertificate.getPrivateKey(),
+                    keyPassword, new X509Certificate[]{selfSignedCertificate.createCertificate()});
+            saveKeystore(keystore);
+        } catch (KeyStoreException | IOException | NoSuchAlgorithmException | CertificateException e) {
+            throw new JTKEncyptionException("Not able to store privateKey in keystore", e);
+        }
+    }
+
+    public void addPrivateKey(PrivateKey privateKey,
+                              char[] keyPassword, X509Certificate[] certificateChain) {
+        try {
+            keystore.setKeyEntry("root", privateKey, keyPassword, certificateChain);
+            saveKeystore(keystore);
+        } catch (KeyStoreException | IOException | NoSuchAlgorithmException | CertificateException e) {
+            throw new JTKEncyptionException("Not able to store privateKey in keystore", e);
+        }
+    }
+
+    public PrivateKey getPrivateKey(char[] keyPwd) {
+        try {
+            return (PrivateKey) keystore.getKey("root", keyPwd);
+        } catch (KeyStoreException | NoSuchAlgorithmException | UnrecoverableKeyException e) {
+            throw new JTKEncyptionException("Unable to get Private key", e);
+        }
+    }
+
+    private void checkAlias(String alias) {
+        if (alias == null || alias.equals("root")) {
+            throw new JTKEncyptionException("Alias is either null or root");
         }
     }
 
@@ -83,6 +126,7 @@ public class KeystoreManager {
      */
     public void trustCertificate(String alias, Certificate certificate) {
         try {
+            checkAlias(alias);
             this.keystore.setCertificateEntry(alias, certificate);
             saveKeystore(this.keystore);
             log.info("Saved certificate:{}", alias);
@@ -91,9 +135,23 @@ public class KeystoreManager {
         }
     }
 
+    /**
+     * get trusted certificates
+     *
+     * @param alias - name used to fetch the certificate
+     * @return the certificate if available else returns null
+     */
     public Certificate getCertificate(String alias) {
         try {
             return keystore.getCertificate(alias);
+        } catch (KeyStoreException e) {
+            throw new JTKEncyptionException("Unable to get Certificate", e);
+        }
+    }
+
+    public Certificate[] getCertificateChain(String alias) {
+        try {
+            return keystore.getCertificateChain(alias);
         } catch (KeyStoreException e) {
             throw new JTKEncyptionException("Unable to get Certificate", e);
         }

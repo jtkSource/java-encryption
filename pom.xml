@@ -11,5 +11,13 @@
     <version>1.0.0</version>
     <name>JTKEncryption</name>
     <description>Encryption Libraries in Java</description>
+    <dependencies>
+        <!-- https://mvnrepository.com/artifact/org.bouncycastle/bcpkix-jdk15on -->
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcpkix-jdk15to18</artifactId>
+            <version>1.69</version>
+        </dependency>
 
+    </dependencies>
 </project>

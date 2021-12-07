@@ -21,15 +21,15 @@ class KeystoreManagerTest {
     }
 
     @Test
+    @DisplayName("test should load and read the keystore when certificate is supplied")
     public void testLoadCertificate() {
         X509Certificate cer = CryptoUtils.loadCertificate("secrets/stackoverflow.cer");
         Assertions.assertNotNull(cer.getPublicKey());
         char[] storepassword = "blah-blah".toCharArray();
-        KeystoreManager keystoreUtil = new KeystoreManager("secrets/symm-trust.pfx", storepassword);
-        keystoreUtil.trustCertificate("stackoverflow", cer);
-        Certificate stackCer = keystoreUtil.getCertificate("stackoverflow");
+        KeystoreManager keystoreManager = new KeystoreManager("secrets/symm-trust.pfx", storepassword);
+        keystoreManager.trustCertificate("stackoverflow", cer);
+        Certificate stackCer = keystoreManager.getCertificate("stackoverflow");
         Assertions.assertNotNull(stackCer);
     }
-
 
 }
