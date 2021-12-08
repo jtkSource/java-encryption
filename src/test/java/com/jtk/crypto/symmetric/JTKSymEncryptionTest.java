@@ -46,39 +46,4 @@ class JTKSymEncryptionTest {
         Assertions.assertNotNull(encryptedText);
     }
 
-    public static void main(String[] args) throws IOException {
-        properties = new Properties();
-        properties.load(new FileReader("src/test/resources/enc.properties"));
-        char[] passphrase = args[0].toCharArray();
-        String fileLinesToEncrypt = args[1];
-        String destinationFiles = "src/test/resources/passphrases-enc";
-        JTKSymEncryption crypto = new JTKSymEncryption(passphrase, properties);
-        if(args.length == 3){
-            try (BufferedReader bufferedReader = new BufferedReader(new FileReader(destinationFiles));
-                 BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(fileLinesToEncrypt))) {
-                String line;
-                while ((line = bufferedReader.readLine()) != null) {
-                    String encryptedText = crypto.decryptMessage(Base64.getDecoder().decode(line));
-                    bufferedWriter.write(encryptedText + "\n");
-                }
-            } catch (Exception e) {
-                log.error("Unexpected Exception", e);
-            }
-
-        }else {
-            try (BufferedReader bufferedReader = new BufferedReader(new FileReader(fileLinesToEncrypt));
-                 BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(destinationFiles))) {
-                String line;
-                while ((line = bufferedReader.readLine()) != null) {
-                    byte[] encryptedText = crypto.encryptMessage(line);
-                    bufferedWriter.write(Base64.getEncoder().encodeToString(encryptedText) + "\n");
-                }
-            } catch (Exception e) {
-                log.error("Unexpected Exception", e);
-            }
-        }
-
-
-    }
-
 }
