@@ -38,13 +38,13 @@ public class Main {
     private static void decrypt(char[] passphrase, JTKSymEncryption crypto) {
         log.info("please enter file to decrypt:");
         String file = scanner.nextLine();
-        String fileDecrpt = file+"-decrypt";
-        try (BufferedReader bufferedReader = new BufferedReader(new FileReader(file));
-             BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(fileDecrpt))) {
+        //String fileDecrpt = file+"-decrypt";
+        try (BufferedReader bufferedReader = new BufferedReader(new FileReader(file))) {
             String line;
             while ((line = bufferedReader.readLine()) != null) {
-                String encryptedText = crypto.decryptMessage(Base64.getDecoder().decode(line));
-                bufferedWriter.write(encryptedText + "\n");
+                String decryptedText = crypto.decryptMessage(Base64.getDecoder().decode(line));
+                //bufferedWriter.write(decryptedText + "\n");
+                log.info("decrypted line :{}",decryptedText);
             }
         } catch (Exception e) {
             log.error("Unexpected Exception", e);
